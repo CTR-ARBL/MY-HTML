@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARBL Pending Delivery Status</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .header {
+            background-color: #8B0000;
+            color: white;
+            text-align: center;
+            padding: 10px 0;
+            font-size: 24px;
+        }
+        .container {
+            margin: 20px auto;
+            width: 90%;
+            max-width: 1200px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        label {
+            font-weight: bold;
+        }
+        select, input[type="date"], input[type="file"] {
+            padding: 5px;
+            width: 200px;
+        }
+        .button-container {
+            text-align: center;
+        }
+        .btn {
+            padding: 10px 20px;
+            margin: 15px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn-upload {
+            background-color: #28a745;
+        }
+        .input-frame {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: center;
+        }
+        tr.yellow {
+            background-color: yellow;
+        }
+        @media (max-width: 768px) {
+            .form-group {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            select, input[type="date"], input[type="file"] {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        ARBL Pending Delivery Status
+    </div>
+    <div class="container">
+        <!-- Removed dropdown and date inputs -->
+        <div class="button-container">
+            <input type="file" id="file-upload" accept=".xls,.xlsx,.xlsm" aria-label="Upload Excel File">
+            <button class="btn btn-upload" onclick="handleFileUpload()">Upload</button>
+        </div>
+        <div class="input-frame">
+            <!-- Excel data will appear here -->
+            <table id="data-table">
+                <thead>
+                    <tr>
+                        <th>S.No</th>
+                        <th>Plant Name</th>
+                        <th>SBU</th>
+                        <th>Invoice Date</th>
+                        <th>Invoice No.</th>
+                        <th>LR No.</th>
+                        <th>Customer</th>
+                        <th>Destination</th>
+                        <th>Truck No.</th>
+                        <th>Proposed Date Of Delivery</th>
+                        <th>Before KM</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Table rows will be inserted dynamically here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <script>
+        function handleFileUpload() {
+            const fileInput = document.getElementById('file-upload');
+            const file = fileInput.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const data = e.target.result;
+                    processExcelFile(data);
+                };
+                reader.readAsBinaryString(file);
+            }
+        }
+
+        function processExcelFile(data) {
+            const workbook = XLSX.read(data, { type: 'binary' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+            const tbody = document.querySelector('#data-table tbody');
+            tbody.innerHTML = ''; // Clear existing rows
+
+            rows.forEach((row, index) => {
+                // Check if any cell in the row contains the word "yellow"
+                if (row.some(cell => cell && cell.toString().toLowerCase().includes('yellow'))) {
+                    const tr = document.createElement('tr');
+                    tr.classList.add('yellow'); // Add yellow background for this row
+
+                    // Only show columns A to L (0 to 11)
+                    const rowData = row.slice(0, 11); // Columns A to K
+
+                    rowData.forEach(cell => {
+                        const td = document.createElement('td');
+                        td.textContent = cell || ''; // Handle empty cells
+                        tr.appendChild(td);
+                    });
+
+                    tbody.appendChild(tr);
+                }
+            });
+        }
+    </script>
+</body>
+</html>

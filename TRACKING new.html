@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tracking Search</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+    <style>
+        .green-bar {
+            background-color: darkred;
+            text-align: center;
+            border: 2px solid black;
+            padding: 6px;
+        }
+
+        .green-bar h2 {
+            color: white;
+            margin: 0;
+            font-size: 20px;
+        }
+
+        .container {
+            margin: 0 2px;
+            padding: 1px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: calc(100% - 13px);
+            table-layout: auto;
+            font-size: 12px;
+            font-family: 'Verdana', sans-serif;
+        }
+
+        table, th, td {
+            border: 1px solid black;
+        }
+
+        th, td {
+            padding: 4px;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        th {
+            background-color: darkred;
+            border: 2px solid black;
+            color: white;
+            font-weight: bold;
+        }
+
+        td {
+            font-size: 14px;
+        }
+
+        .upload-search-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 10px 0;
+        }
+
+        .upload-button {
+            background-color: green;
+            color: white;
+            padding: 8px 10px;
+            border: 2px solid black;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+
+        .upload-button:hover {
+            background-color: darkgreen;
+        }
+
+        .search-box input[type="text"] {
+            padding: 8px;
+            width: 200px;
+            border: 2px solid black;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        .date-filter input[type="date"] {
+            padding: 7px;
+            width: 150px;
+            border: 2px solid black;
+            border-radius: 4px;
+            font-size: 17px;
+            margin-right: 10px;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+
+	}
+
+      
+        
+    </style>
+
+    <script>
+        var jsonData = [];  // Global variable to hold the JSON data
+
+        // Handle file upload and convert to JSON
+        function handleFile(e) {
+            var file = e.target.files[0];
+            var reader = new FileReader();
+            reader.onload = function(event) {
+                var data = new Uint8Array(event.target.result);
+                var workbook = XLSX.read(data, {type: 'array'});
+                var sheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[sheetName];
+                jsonData = XLSX.utils.sheet_to_json(worksheet, {header: 1, raw: false});
+                populateTable(jsonData, worksheet);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Convert Excel date to readable format
+        function formatExcelDate(excelDate) {
+            if (!isNaN(excelDate) && excelDate > 0) {
+                var date = XLSX.SSF.format("dd/mm/yyyy", excelDate);
+                return date;
+            }
+            return excelDate;
+        }
+
+        // Check if the cell is part of a merged range
+        function isMergedCell(cellAddress, merges) {
+            for (var i = 0; i < merges.length; i++) {
+                var merge = merges[i];
+                if (merge.s.r <= cellAddress.r && cellAddress.r <= merge.e.r &&
+                    merge.s.c <= cellAddress.c && cellAddress.c <= merge.e.c) {
+                    return merge;
+                }
+            }
+            return null;
+        }
+
+        // Populate the HTML table with Excel data
+        function populateTable(data, worksheet) {
+            var table = document.getElementById("dataTable");
+            table.innerHTML = "";  // Clear the existing table
+
+            var merges = worksheet["!merges"] || [];  // Check for merged cells
+
+            // Create table headers
+            var thead = document.createElement("thead");
+            var headerRow = document.createElement("tr");
+
+            data[1].forEach(function(cell, index) {
+                if (index === 0 ||  index >= 13) return;  // Skip columns A, J, N, O, P, Q
+
+                var th = document.createElement("th");
+                th.appendChild(document.createTextNode(cell));
+                headerRow.appendChild(th);
+            });
+
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+
+            // Create table body
+            var tbody = document.createElement("tbody");
+
+            for (var i = 2; i < data.length; i++) {
+                var row = document.createElement("tr");
+
+                data[i].forEach(function(cell, index) {
+                    if (index === 0 ||  index >= 13) return;
+
+                    var td = document.createElement("td");
+                    var cellRef = XLSX.utils.encode_cell({r: i, c: index});
+                    var cellObj = worksheet[cellRef];
+                    var merge = isMergedCell({r: i, c: index}, merges);
+
+                    if (merge) {
+                        td.setAttribute("colspan", merge.e.c - merge.s.c + 1);
+                        td.setAttribute("rowspan", merge.e.r - merge.s.r + 1);
+                    }
+
+                    if (cellObj && cellObj.t === 'n' && cellObj.z && cellObj.z.includes('m/d/yy')) {
+                        td.appendChild(document.createTextNode(formatExcelDate(cell)));
+                    } else {
+                        td.appendChild(document.createTextNode(cell));
+                    }
+
+                    row.appendChild(td);
+                });
+
+                tbody.appendChild(row);
+            }
+
+            table.appendChild(tbody);
+        }
+
+        // Search and filter the table based on input and date range
+        function searchTable() {
+            var input = document.getElementById("searchInput").value.toUpperCase();
+            var fromDateInput = document.getElementById("fromDate").value;
+            var toDateInput = document.getElementById("toDate").value;
+
+            // Convert the input date strings to Date objects, and explicitly set time to prevent time zone issues
+            var fromDate = fromDateInput ? new Date(fromDateInput + "T00:00:00") : null;
+            var toDate = toDateInput ? new Date(toDateInput + "T23:59:59") : null;
+
+            var table = document.getElementById("dataTable");
+            var tr = table.getElementsByTagName("tr");
+
+            for (var i = 2; i < jsonData.length; i++) {
+                var row = jsonData[i];
+                var invoiceDateCell = row[3];  // Assuming "Invoice Date" is in column D (index 3)
+                var invoiceDate = invoiceDateCell ? new Date(formatExcelDate(invoiceDateCell)) : null;
+
+                var showRow = true;
+
+                // Filter based on search input
+                if (input && row.toString().toUpperCase().indexOf(input) === -1) {
+                    showRow = false;
+                }
+
+                // Filter based on date range if dates are provided
+                if (fromDate && toDate && invoiceDate) {
+                    if (invoiceDate < fromDate || invoiceDate > toDate) {
+                        showRow = false;
+                    }
+                }
+
+                tr[i - 1].style.display = showRow ? "" : "none";
+            }
+        }
+
+
+    </script>
+</head>
+<body>
+
+    <!-- Green Bar with Heading -->
+    <div class="green-bar">
+        <h2>Upload Tracking and Search Data</h2>
+    </div>
+
+    <!-- Container for Upload button, Date filters, and Search box -->
+    <div class="upload-search-container">
+        <input type="file" id="fileUpload" accept=".xlsx, .xls, .xlsm" onchange="handleFile(event)" class="upload-button">
+
+        <!-- From Date and To Date filters -->
+        <div class="date-filter">
+            <input type="date" id="fromDate" placeholder="From Date">
+            <input type="date" id="toDate" placeholder="To Date">
+        </div>
+
+        <!-- Search Box on the right side of Upload Button -->
+        <div class="search-box">
+            <input type="text" id="searchInput" onkeyup="searchTable()" placeholder="Search for anything..">
+        </div>
+    </div>
+
+    <!-- Container for the Table -->
+    <div class="container">
+        <table id="dataTable"></table>
+    </div>
+
+</body>
+</html>
+
+
+
+

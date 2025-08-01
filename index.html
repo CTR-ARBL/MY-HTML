@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ARBL - Dashboard</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f0f0;
+      position: relative;
+    }
+
+    body::before {
+      content: "";
+      background-image: url('logo.png');
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 700px;
+      opacity: 0.10;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .loader-wrapper {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: white;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .loader {
+      width: 80px;
+      height: 80px;
+      border: 10px solid #f3f3f3;
+      border-top: 10px solid #003366;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    .welcome-text {
+      font-size: 24px;
+      font-weight: bold;
+      color: #003366;
+      margin-top: 20px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .navbar {
+      background-color: #003366;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 2px 5px 2px 5px; /* reduced bottom padding */
+      position: relative;
+      z-index: 100;
+    }
+
+   .logo-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 0 10px 10px 0; /* Sirf right side radius ke liye */
+    border: 2px double white; /* Double border with white color */
+    overflow: hidden; /* Yadi andar ka content bhi radius follow kare toh */
+    background-color: #003366; /* Ek halka blue background diya */
+    padding: 2px; /* Thoda zyada spacing diya */
+    box-shadow: 2px 2px 10px rgba(255, 255, 255, 0.3); /* Halka shadow effect */
+    max-width: 300px; /* Box ki width limit karne ke liye */
+}
+
+
+    .logo-box img {
+      height: 50px;
+      background-color: #fff;
+    }
+
+    .logo-text {
+      font-size: 22px;
+      font-weight: bold;
+      
+
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .nav-links a,
+    .dropdown-btn {
+      color: white;
+      text-decoration: none;
+      font-size: 18px;
+      background: none;
+      border: none;
+      padding: 2px 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: normal; /* ✅ undo bold */
+      transition: color 0.3s;
+    }
+
+    .nav-links a:hover,
+    .dropdown-btn:hover {
+      color: #00FF99;
+    }
+
+    .dropdown {
+      position: relative;
+    }
+
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      top: 40px;
+      background-color: white;
+      min-width: 200px;
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+      z-index: 200;
+      border-radius: 6px;
+    }
+
+    .dropdown-content a {
+      display: block;
+      padding: 10px 16px;
+      color: #003366;
+      text-decoration: none;
+      transition: background 0.3s ease;
+    }
+
+    .dropdown-content a:hover {
+      background-color: #f0f0f0;
+    }
+
+    .dropdown.active .dropdown-content {
+      display: block;
+    }
+
+    .marquee-container {
+      overflow: hidden;
+      background-color: #fff;
+      padding: 5px 0;
+      border-top: 1px solid #ccc;
+      position: relative;
+      z-index: 2;
+    }
+
+    .marquee-inner {
+      width: 100%;
+      display: flex;
+      animation: scrollRightToLeft 20s linear infinite;
+    }
+
+    .marquee-text {
+      font-size: 20px;
+      white-space: nowrap;
+      padding-left: 100%; /* ✅ start off screen to the right */
+      animation: colorChange 8s linear infinite;
+    }
+
+    @keyframes scrollRightToLeft {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-100%); }
+    }
+
+    @keyframes colorChange {
+      0% { color: #003366; }
+      25% { color: #0099cc; }
+      50% { color: #00cc66; }
+      75% { color: #ff9933; }
+      100% { color: #003366; }
+    }
+
+    .content {
+      padding: 40px;
+      text-align: center;
+      font-size: 22px;
+      position: relative;
+      z-index: 1;
+    }
+  </style>
+
+  <script>
+    window.addEventListener("load", () => {
+      setTimeout(() => {
+        document.querySelector(".loader-wrapper").style.display = "none";
+      }, 2500);
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+      const dropdownBtn = document.querySelector(".dropdown-btn");
+      const dropdown = document.querySelector(".dropdown");
+
+      dropdownBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        dropdown.classList.toggle("active");
+      });
+
+      window.addEventListener("click", () => {
+        dropdown.classList.remove("active");
+      });
+    });
+  </script>
+</head>
+
+<body>
+  <!-- Loader with welcome -->
+  <div class="loader-wrapper">
+    <div class="loader"></div>
+    <div class="welcome-text">Please Wait....</div>
+  </div>
+
+  <!-- Navbar -->
+  <div class="navbar">
+    <div class="logo-box">
+      <img src="logo.png" alt="Amara Raja Logo" />
+      <div class="logo-text">ARE&ML DASHBOARD</div>
+    </div>
+    <div class="nav-links">
+      <a href="home.html"><i class="fas fa-home"></i> ARBL HOME</a>
+      <a href="ontime.html"><i class="fas fa-clock"></i> On Time Delivery</a>
+      <a href="multipoint.html"><i class="fas fa-map-marked-alt"></i> Multipoint Vehicle</a>
+      <a href="#"><i class="fas fa-map-pin"></i> Destination wise Late</a>
+      <a href="#"><i class="fas fa-chart-line"></i> Yearly Performance</a>
+      <a href="#"><i class="fas fa-history"></i> Last Year Performance</a>
+      <div class="dropdown">
+        <button class="dropdown-btn">
+          <i class="fas fa-file-invoice-dollar"></i> Billing & Approvals
+          <i class="fas fa-caret-down"></i>
+        </button>
+        <div class="dropdown-content">
+          <a href="#"><i class="fas fa-star"></i> Special Approval Entry</a>
+          <a href="#"><i class="fas fa-file-alt"></i> Bill Entry</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scrolling Banner -->
+  <div class="marquee-container">
+    <div class="marquee-inner">
+      <div class="marquee-text">
+        Track Vehicle Performance, Billing And Approval Entries From One Place
+      </div>
+    </div>
+  </div>
+
+
+  
+</body>
+</html>

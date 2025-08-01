@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARE & ML Billing Search</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+        }
+
+        .header {
+            background-color: darkred;
+            text-align: center;
+            padding: 2px;
+        }
+
+        h1 {
+            color: white;
+            margin: 0;
+            font-size: 35px;
+        }
+
+        .button {
+            padding: 8px 16px;
+            font-size: 14px;
+            border: 1px solid black;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        .upload-button {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .upload-button:hover {
+            background-color: darkgreen;
+        }
+
+        .search-button {
+            background-color: blue;
+            color: white;
+            font-weight: bold;
+        }
+
+        .search-button:hover {
+            background-color: darkblue;
+        }
+
+        .clear-button {
+            background-color: red;
+            color: white;
+            font-weight: bold;
+        }
+
+        .clear-button:hover {
+            background-color: darkred;
+        }
+
+        .search-box {
+            padding: 8px 10px;
+            font-size: 14px;
+            border: 1px solid black;
+            border-radius: 4px;
+            margin-left: 10px;
+        }
+
+        table {
+            width: 100%;
+            max-width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            table-layout: auto;
+            font-size: 12px;
+        }
+
+        table, th, td {
+            border: 1px solid black;
+            text-align: left;
+            padding: 3px;
+            word-wrap: break-word;
+        }
+
+        th, td {
+            min-width: 60px;
+            white-space: normal;
+        }
+
+        .table-container {
+            max-width: 100vw;
+            overflow-x: auto;
+            overflow-y: hidden;
+            margin-top: 15px;
+        }
+
+        .controls {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        /* Loading Spinner Styles */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .spinner {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #0c32f0;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>TCI-ARBL BILLING</h1> <!-- Main heading -->
+    </div>
+
+    <div class="controls">
+        <!-- Upload Button -->
+        <input type="file" id="uploadExcel" class="button upload-button" />
+
+        <!-- Search Box -->
+        <input type="text" id="searchBox" class="search-box" placeholder="Enter data to search" />
+        <button class="button search-button" onclick="searchData()">SEARCH</button>
+        <button class="button clear-button" onclick="clearSearch()">CLEAR</button>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Display Matched Sheet Data -->
+    <div class="table-container" id="sheetContent"></div>
+
+    <script>
+        let sheetData = {};
+        let sheetMerges = {};
+        let sheetMaxCols = {};
+
+        // Function to show and hide the loading spinner
+        function showLoading() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+        // Function to read and load the Excel file
+        document.getElementById('uploadExcel').addEventListener('change', function(e) {
+            showLoading();  // Show loading spinner while processing the file
+            var file = e.target.files[0];
+            var reader = new FileReader();
+
+            reader.onload = function(event) {
+                var data = new Uint8Array(event.target.result);
+                var workbook = XLSX.read(data, {type: 'array'});
+
+                // Extract sheet names and data
+                var sheets = workbook.SheetNames;
+                
+                sheets.forEach(function(sheetName) {
+                    var sheet = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {header: 1});
+                    sheetData[sheetName] = sheet;
+
+                    if (workbook.Sheets[sheetName]['!merges']) {
+                        sheetMerges[sheetName] = workbook.Sheets[sheetName]['!merges'];
+                    }
+
+                    let maxCols = Math.max(...sheet.map(row => row.length));
+                    sheetMaxCols[sheetName] = maxCols;
+                });
+
+                hideLoading();  // Hide loading spinner once the file is loaded
+            };
+
+            reader.readAsArrayBuffer(file);
+        });
+
+        // Function to search the data in all sheets
+        function searchData() {
+            showLoading();  // Show loading spinner during search
+            var searchQuery = document.getElementById('searchBox').value.trim().toLowerCase();
+            var foundSheet = null;
+            var foundData = false;
+
+            for (const [sheetName, data] of Object.entries(sheetData)) {
+                for (const row of data) {
+                    for (const cell of row) {
+                        if (cell && cell.toString().toLowerCase().includes(searchQuery)) {
+                            foundSheet = sheetName;
+                            foundData = true;
+                            break;
+                        }
+                    }
+                    if (foundData) break;
+                }
+                if (foundData) break;
+            }
+
+            if (foundSheet) {
+                displaySheet(foundSheet);
+            } else {
+                alert("Record Not Found");
+                document.getElementById('sheetContent').innerHTML = '';  // Clear content
+            }
+
+            hideLoading();  // Hide loading spinner after search is complete
+        }
+
+        // Function to clear the search box and table
+        function clearSearch() {
+            document.getElementById('searchBox').value = '';
+            document.getElementById('sheetContent').innerHTML = '';
+        }
+
+        // Function to display the sheet content
+        function displaySheet(sheetName) {
+            var result = sheetData[sheetName];
+            var merges = sheetMerges[sheetName] || [];
+            var maxCols = sheetMaxCols[sheetName];
+
+            if (result) {
+                var table = '<table>';
+                var mergeMap = {};
+
+                merges.forEach(function(merge) {
+                    for (var r = merge.s.r; r <= merge.e.r; r++) {
+                        for (var c = merge.s.c; c <= merge.e.c; c++) {
+                            if (r !== merge.s.r || c !== merge.s.c) {
+                                mergeMap[`${r}-${c}`] = true;
+                            }
+                        }
+                    }
+                });
+
+                result.forEach(function(row, rowIndex) {
+                    table += '<tr>';
+                    for (var colIndex = 0; colIndex < maxCols; colIndex++) {
+                        if (!mergeMap[`${rowIndex}-${colIndex}`]) {
+                            var cellText = row[colIndex] !== undefined ? row[colIndex] : '';
+                            var mergeInfo = '';
+
+                            merges.forEach(function(merge) {
+                                if (merge.s.r === rowIndex && merge.s.c === colIndex) {
+                                    var rowspan = merge.e.r - merge.s.r + 1;
+                                    var colspan = merge.e.c - merge.s.c + 1;
+                                    mergeInfo = `rowspan="${rowspan}" colspan="${colspan}"`;
+                                }
+                            });
+
+                            table += `<td ${mergeInfo}>${cellText}</td>`;
+                        }
+                    }
+                    table += '</tr>';
+                });
+
+                table += '</table>';
+                document.getElementById('sheetContent').innerHTML = table;
+            }
+        }
+    </script>
+
+</body>
+</html>
